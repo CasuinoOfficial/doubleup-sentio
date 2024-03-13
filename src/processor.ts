@@ -53,12 +53,8 @@ bls_settler
       parse_token(event.type_arguments[0]) === "COIN"
         ? "USDC"
         : parse_token(event.type_arguments[0]);
-<<<<<<< HEAD
-    const game_type = extractGameTypes(event.type)[0]
-=======
         // 1 is the actual game type
-    const game_type = extractGenericTypes(event.type)[1]
->>>>>>> refs/remotes/origin/main
+    const game_type = extractGameTypes(event.type)
     const bet_id = event.data_decoded.bet_id;
     const outcome = event.data_decoded.outcome; 
     const player = normalizeSuiAddress(event.data_decoded.player);
@@ -267,12 +263,12 @@ function token_decimal(token: string): number {
   }
 }
 
-function extractGameTypes(typeName: string): string[] {
+function extractGameTypes(typeName: string): string {
     const x = typeName.split("<");
     if (x.length > 1) {
       const y = x[1].split("::")
       return y[y.length - 1].replace(">", "")
     } else {
-      return [];
+      return "";
     };
   }
