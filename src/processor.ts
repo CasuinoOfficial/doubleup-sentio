@@ -63,14 +63,16 @@ bls_settler
     const player_won = event.data_decoded.settlements[0].player_won
     const win_condition = event.data_decoded.settlements[0].win_condition.vec[0]
 
-    ctx.meter.Counter(`${game_type}_Games_Played`).add(1, {
+    ctx.meter.Counter(`Total_${game_type}_Games`).add(1, {
       coin_type: coin_type,
     })
     ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
       coin_type: coin_type,
+      game_type: game_type,
     });
     ctx.meter.Counter("Cumulative_Payout_Amount").add(Number(payout_amount), {
-      coin_type: coin_type
+      coin_type: coin_type,
+      game_type: game_type,
     })
 
     ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
@@ -140,6 +142,7 @@ roulette_events
           });
           ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
             coin_type: coin_type,
+            game_type: "Roulette",
           });
           ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
             player: player,
