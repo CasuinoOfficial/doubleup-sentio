@@ -53,7 +53,6 @@ bls_settler
       parse_token(event.type_arguments[0]) === "COIN"
         ? "USDC"
         : parse_token(event.type_arguments[0]);
-        // 1 is the actual game type
     const game_type = extractGameTypes(event.type)
     const bet_id = event.data_decoded.bet_id;
     const outcome = event.data_decoded.outcome; 
@@ -67,9 +66,6 @@ bls_settler
     ctx.meter.Counter(`${game_type}_Games_Played`).add(1, {
       coin_type: coin_type,
     })
-    ctx.meter.Counter("Total_Games_Played").add(1, {
-      coin_type: coin_type,
-    });
     ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
       coin_type: coin_type,
     });
@@ -139,7 +135,7 @@ roulette_events
           const player = normalizeSuiAddress(bet.player);
           const player_win = bet.is_win;
       
-          ctx.meter.Counter("Total_Bets").add(1, {
+          ctx.meter.Counter("Total_Roulette_Games").add(1, {
             coin_type: coin_type,
           });
           ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
