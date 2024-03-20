@@ -46,52 +46,6 @@ const DICE_BET_TYPES = [
   { num: 9, type: "big", odds: 2 },
 ];
 
-bls_settler
-  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
-  .onEventSettlementEvent((event, ctx) => {
-    const coin_type =
-      parse_token(event.type_arguments[0]) === "COIN"
-        ? "USDC"
-        : parse_token(event.type_arguments[0]);
-    const game_type = extractGameTypes(event.type)
-    const bet_id = event.data_decoded.bet_id;
-    const outcome = event.data_decoded.outcome; 
-    const player = normalizeSuiAddress(event.data_decoded.player);
-    const bet_size = event.data_decoded.settlements[0].bet_size.scaleDown(
-      token_decimal(coin_type));
-    const payout_amount = event.data_decoded.settlements[0].payout_amount
-    const player_won = event.data_decoded.settlements[0].player_won
-    const win_condition = event.data_decoded.settlements[0].win_condition.vec[0]
-
-    ctx.meter.Counter(`Total_${game_type}_Games`).add(1, {
-      coin_type: coin_type,
-    })
-    ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
-      coin_type: coin_type,
-      game_type: game_type,
-    });
-    ctx.meter.Counter("Cumulative_Payout_Amount").add(Number(payout_amount), {
-      coin_type: coin_type,
-      game_type: game_type,
-    })
-
-    ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
-      game_type: game_type,
-      game_data: {
-        win_condition: win_condition, 
-        outcome: outcome
-      },
-      bet_id: bet_id,
-      player: player,
-      bet_size: Number(bet_size),
-      payout_amount: Number(payout_amount),
-      player_won: player_won as boolean,
-      pnl: player_won
-      ? Number(bet_size) - Number(payout_amount)
-      : Number(bet_size)
-    } as BetResult);
-  });
-
 events 
   .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
   .onEventDeposit((event, ctx) => {
@@ -118,10 +72,64 @@ events
       amount: amount,
     });
   });
-    
+
+bls_settler
+  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
+  .onEventSettlementEvent((event, ctx) => {
+    const coin_type =
+      parse_token(event.type_arguments[0]) === "COIN"
+        ? "USDC"
+        : parse_token(event.type_arguments[0]);
+    const game_type = extractGameTypes(event.type)
+    const bet_id = event.data_decoded.bet_id;
+    const outcome = event.data_decoded.outcome; 
+    const player = normalizeSuiAddress(event.data_decoded.player);
+    const bet_size = event.data_decoded.settlements[0].bet_size.scaleDown(
+      token_decimal(coin_type));
+    const payout_amount = event.data_decoded.settlements[0].payout_amount
+    const player_won = event.data_decoded.settlements[0].player_won
+    const win_condition = event.data_decoded.settlements[0].win_condition.vec[0]
+    const pnl = player_won
+      ? Number(bet_size) - Number(payout_amount)
+      : -Number(bet_size); // If player lost, pnl is negative bet_size
+
+    ctx.meter.Counter(`Total_${game_type}_Games`).add(1, {
+      coin_type: coin_type,
+    })
+    ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
+      coin_type: coin_type,
+      game_type: game_type,
+    });
+    if (player_won) {
+      ctx.meter.Counter("Cumulative_Amount_Paid_Out").add(Number(payout_amount), {
+          coin_type: coin_type,
+          game_type: game_type,
+      })
+    };
+    ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
+        coin_type: coin_type,
+        game_type: game_type
+    })
+
+    ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
+      game_type: game_type,
+      game_data: {
+        win_condition: win_condition, 
+        outcome: outcome
+      },
+      bet_id: bet_id,
+      player: player,
+      bet_size: Number(bet_size),
+      payout_amount: Number(payout_amount),
+      player_won: player_won as boolean,
+      pnl: pnl
+    } as BetResult);
+  });
+
 roulette_events
   .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
   .onEventGameSettlement((event, ctx) => {
+    const game_type = "roulette";
     const coin_type =
       parse_token(event.type_arguments[0]) === "COIN"
         ? "USDC"
@@ -136,24 +144,29 @@ roulette_events
           );
           const player = normalizeSuiAddress(bet.player);
           const player_win = bet.is_win;
+          const pnl = player_win
+              ? Number(bet_size) * ROULETTE_BET_TYPES[bet_type].odds -
+                Number(bet_size)
+              : -Number(bet_size);
       
           ctx.meter.Counter("Total_Roulette_Games").add(1, {
             coin_type: coin_type,
           });
           ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
             coin_type: coin_type,
-            game_type: "Roulette",
+            game_type: game_type,
           });
+          ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
+            coin_type: coin_type,
+            game_type: game_type
+          })
           ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
             player: player,
             bet_type: ROULETTE_BET_TYPES[bet_type].name,
             bet_number: `${bet_number}`,
             bet_size: bet.bet_size,
             player_win: player_win,
-            pnl: player_win
-              ? Number(bet_size) * ROULETTE_BET_TYPES[bet_type].odds -
-                Number(bet_size)
-              : -Number(bet_size),
+            pnl: pnl
           });
         }
   });
@@ -182,6 +195,11 @@ single_deck_blackjack
     const player = event.data_decoded.player;
     const pnl = event.data_decoded.player_won - event.data_decoded.player_lost;
 
+    ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
+        coin_type: coin_type,
+        game_type: game_type
+    })
+
     ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
       game_type: game_type,
       // Note: We can modify this to add more if we want
@@ -201,12 +219,17 @@ single_deck_blackjack
   .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
   .onEventLimboResults((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
+    const game_type = "limbo";
     let results = event.data_decoded.results;
     for (let i = 0; i < results.length; i++) {
       let result = results[i];
       let pnl = result.bet_returned - result.bet_size;
+      ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
+        coin_type: coin_type,
+        game_type: game_type 
+      })
       ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
-        game_type: "limbo",
+        game_type: game_type,
         // Note: We can modify this to add more if we want
         game_data: {
           outcome: result.outcome,
