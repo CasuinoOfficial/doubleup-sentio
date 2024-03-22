@@ -147,10 +147,11 @@ roulette_events
           const bet_size = bet.bet_size.scaleDown(
             token_decimal(coin_type)
           );
+          const payout_amount = Number(bet_size) * ROULETTE_BET_TYPES[bet_type].odds
           const player = normalizeSuiAddress(bet.player);
           const player_win = bet.is_win;
           const pnl = player_win
-              ? Number(bet_size) - Number(bet_size) * ROULETTE_BET_TYPES[bet_type].odds
+              ? Number(bet_size) - Number(payout_amount)
               : Number(bet_size);
       
           ctx.meter.Counter("Total_Roulette_Games").add(1, {
@@ -160,6 +161,17 @@ roulette_events
             coin_type: coin_type,
             game_type: game_type,
           });
+          if (player_win) {
+            ctx.meter.Counter("Cumulative_Amount_Paid_Out").add(Number(payout_amount), {
+              coin_type: coin_type,
+              game_type: game_type,
+            });
+          } else {
+          ctx.meter.Counter("Cumulative_Amount_Paid_Out").add(0, {
+              coin_type: coin_type,
+              game_type: game_type,
+            });
+          };
           ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
             coin_type: coin_type,
             game_type: game_type
@@ -197,12 +209,15 @@ single_deck_blackjack
     };
     const payout_amount = event.data_decoded.player_won;
     const player = event.data_decoded.player;
-    const pnl = event.data_decoded.player_lost - event.data_decoded.player_won;
+    const pnl = event.data_decoded.player_lost - payout_amount;
 
+    // Not sure how to do Cumulative_PNL for blackjack
     ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
         coin_type: coin_type,
         game_type: game_type
     })
+
+    // Also not sure about how to do Cumulative_Amount_Paid_out
 
     ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
       game_type: game_type,
@@ -228,10 +243,15 @@ single_deck_blackjack
     for (let i = 0; i < results.length; i++) {
       let result = results[i];
       let pnl = result.bet_size - result.bet_returned;
+
+      // Don't think Cumulative_PNL works properly
       ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
         coin_type: coin_type,
         game_type: game_type 
       })
+
+      // Need to add Cumulative_Amount_Paid_Out
+
       ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
         game_type: game_type,
         // Note: We can modify this to add more if we want
@@ -257,8 +277,8 @@ single_deck_blackjack
       game_data: {
         ball_count: event.data_decoded.ball_count,
         ///    const LOW_GAME_TYPE: u8 = 0;
-    ///const MID_GAME_TYPE: u8 = 1;
-    ///const HIGH_GAME_TYPE: u8 = 2;
+        ///const MID_GAME_TYPE: u8 = 1;
+        ///const HIGH_GAME_TYPE: u8 = 2;
         game_type: event.data_decoded.game_type
       },
       player: event.data_decoded.player,
