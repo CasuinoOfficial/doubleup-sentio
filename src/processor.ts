@@ -18,19 +18,19 @@ type BetResult = {
 };  
 
 const ROULETTE_BET_TYPES = [
-  { name: "RED_BET", odds: 2 },
-  { name: "BLACK_BET", odds: 2 },
-  { name: "NUMBER_BET", odds: 36 },
-  { name: "EVEN_BET", odds: 2 },
-  { name: "ODD_BET", odds: 2 },
-  { name: "FIRST_TWELVE", odds: 3 },
-  { name: "SECOND_TWELVE", odds: 3 },
-  { name: "THIRD_TWELVE", odds: 3 },
-  { name: "FIRST_EIGHTEEN", odds: 2 },
-  { name: "SECOND_EIGHTEEN", odds: 2 },
-  { name: "FIRST_COLUMN", odds: 3 },
-  { name: "SECOND_COLUMN", odds: 3 },
-  { name: "THIRD_COLUMN", odds: 3 },
+  { name: "RED_BET", odds: 1 },
+  { name: "BLACK_BET", odds: 1 },
+  { name: "NUMBER_BET", odds: 35 },
+  { name: "EVEN_BET", odds: 1 },
+  { name: "ODD_BET", odds: 1 },
+  { name: "FIRST_TWELVE", odds: 2 },
+  { name: "SECOND_TWELVE", odds: 2 },
+  { name: "THIRD_TWELVE", odds: 2 },
+  { name: "FIRST_EIGHTEEN", odds: 1 },
+  { name: "SECOND_EIGHTEEN", odds: 1 },
+  { name: "FIRST_COLUMN", odds: 2 },
+  { name: "SECOND_COLUMN", odds: 2 },
+  { name: "THIRD_COLUMN", odds: 2 },
 ];
 
 const DICE_BET_TYPES = [
@@ -58,7 +58,7 @@ events
       });
       ctx.eventLogger.emit(`${coin_type}_Deposit`, {
         amount: amount,
-      })
+      });
     })
   .onEventWithdraw((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
@@ -76,51 +76,26 @@ events
 bls_settler
   .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventSettlementEvent((event, ctx) => {
-    const coin_type =
-      parse_token(event.type_arguments[0]) === "COIN"
-        ? "USDC"
-        : parse_token(event.type_arguments[0]);
-    const game_type = extractGameTypes(event.type)
+    const genericType = extractGenericTypes(event.type);
+    const coin_type = parse_token(genericType[0]);
+    const game_type = genericType[1];
+
     const bet_id = event.data_decoded.bet_id;
-    const outcome = event.data_decoded.outcome; 
     const player = normalizeSuiAddress(event.data_decoded.player);
-    const bet_size = event.data_decoded.settlements[0].bet_size.scaleDown(
-      token_decimal(coin_type));
+    const bet_size = event.data_decoded.settlements[0].bet_size;
     const payout_amount = event.data_decoded.settlements[0].payout_amount
     const player_won = event.data_decoded.settlements[0].player_won
     const win_condition = event.data_decoded.settlements[0].win_condition.vec[0]
+    // If player lost, pnl is negative bet_size
+    // Note for some reason in bls settler we don't show the real payout amount
     const pnl = player_won
-      ? Number(bet_size) - Number(payout_amount)
-      : Number(bet_size); // If player lost, pnl is negative bet_size
-
-    ctx.meter.Counter(`Total_${game_type}_Games`).add(1, {
-      coin_type: coin_type,
-    })
-    ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
-      coin_type: coin_type,
-      game_type: game_type,
-    });
-    if (player_won) {
-      ctx.meter.Counter("Cumulative_Amount_Paid_Out").add(Number(payout_amount), {
-          coin_type: coin_type,
-          game_type: game_type,
-      });
-    } else {
-      ctx.meter.Counter("Cumulative_Amount_Paid_Out").add(0, {
-          coin_type: coin_type,
-          game_type: game_type,
-      });
-    };
-    ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
-        coin_type: coin_type,
-        game_type: game_type
-    })
+      ? 0 - Number(payout_amount)
+      : Number(bet_size);
 
     ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
       game_type: game_type,
       game_data: {
         win_condition: win_condition, 
-        outcome: outcome
       },
       bet_id: bet_id,
       player: player,
@@ -135,56 +110,34 @@ roulette_events
   .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventGameSettlement((event, ctx) => {
     const game_type = "roulette";
-    const coin_type =
-      parse_token(event.type_arguments[0]) === "COIN"
-        ? "USDC"
-        : parse_token(event.type_arguments[0]);
-        let bet_results = event.data_decoded.bet_results;
-        for (let i = 0; i< bet_results.length; i++) {
-          let bet = bet_results[i];
-          const bet_type = bet.bet_type;
-          const bet_number = bet.bet_number;
-          const bet_size = bet.bet_size.scaleDown(
-            token_decimal(coin_type)
-          );
-          const payout_amount = Number(bet_size) * ROULETTE_BET_TYPES[bet_type].odds
-          const player = normalizeSuiAddress(bet.player);
-          const player_win = bet.is_win;
-          const pnl = player_win
-              ? Number(bet_size) - Number(payout_amount)
-              : Number(bet_size);
+    const genericType = extractGenericTypes(event.type);
+    const coin_type = parse_token(genericType[0]);
+    let bet_results = event.data_decoded.bet_results;
+    for (let i = 0; i < bet_results.length; i++) {
+      let bet = bet_results[i];
+      const bet_type = bet.bet_type;
+      const bet_number = bet.bet_number;
+      const bet_size = bet.bet_size.scaleDown(
+        token_decimal(coin_type)
+      );
+      const payout_amount = Number(bet_size) * ROULETTE_BET_TYPES[bet_type].odds
+      const player = normalizeSuiAddress(bet.player);
+      const player_win = bet.is_win;
+      const pnl = player_win
+          ? 0 - Number(payout_amount)
+          : Number(bet_size);
       
-          ctx.meter.Counter("Total_Roulette_Games").add(1, {
-            coin_type: coin_type,
-          });
-          ctx.meter.Counter("Cumulative_Bet_Size").add(Number(bet_size), {
-            coin_type: coin_type,
-            game_type: game_type,
-          });
-          if (player_win) {
-            ctx.meter.Counter("Cumulative_Amount_Paid_Out").add(Number(payout_amount), {
-              coin_type: coin_type,
-              game_type: game_type,
-            });
-          } else {
-          ctx.meter.Counter("Cumulative_Amount_Paid_Out").add(0, {
-              coin_type: coin_type,
-              game_type: game_type,
-            });
-          };
-          ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
-            coin_type: coin_type,
-            game_type: game_type
-          })
-          ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
-            player: player,
-            bet_type: ROULETTE_BET_TYPES[bet_type].name,
-            bet_number: `${bet_number}`,
-            bet_size: bet.bet_size,
-            player_win: player_win,
-            pnl: pnl
-          });
-        }
+      
+      ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
+        game_type: game_type,
+        player: player,
+        bet_type: ROULETTE_BET_TYPES[bet_type].name,
+        bet_number: `${bet_number}`,
+        bet_size: bet.bet_size,
+        player_win: player_win,
+        pnl: pnl
+      });
+    }
   });
 
 single_deck_blackjack
@@ -192,24 +145,18 @@ single_deck_blackjack
   .onEventGameOutcome((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
     // Boolean on amount comparator here
-    const is_win = event.data_decoded.player_won > event.data_decoded.player_lost;
+    // const is_win = event.data_decoded.player_won > event.data_decoded.player_lost;
     const game_type = "blackjack";
     // Case for DOUBLE and SPLIT hands
     let bet_size = BigInt(0);
     for ( let i = 0; i < event.data_decoded.player_hands.length; i++) {
-      ctx.meter.Counter("Total_Blackjack_Hands").add(1, {
-        coin_type: coin_type,
-      });
       let hand = event.data_decoded.player_hands[i];
-      if (hand.is_doubled) {
-        bet_size += event.data_decoded.bet_size * BigInt(2);
-      } else {
-        bet_size += event.data_decoded.bet_size;
-      }
+      bet_size += hand.bet_size;
     };
-    const payout_amount = event.data_decoded.player_won;
+    const player_won = event.data_decoded.player_won;
+    const player_lost = event.data_decoded.player_lost;
     const player = event.data_decoded.player;
-    const pnl = event.data_decoded.player_lost - payout_amount;
+    const pnl = player_lost - player_won;
 
     // Not sure how to do Cumulative_PNL for blackjack
     ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
@@ -226,9 +173,9 @@ single_deck_blackjack
         dealer_cards: event.data_decoded.dealer_cards,
       },
       bet_id: event.data_decoded.game_id,
-      player: event.data_decoded.player,
+      player: player,
       bet_size: Number(bet_size),
-      payout_amount: Number(payout_amount),
+      payout_amount: Number(pnl),
       player_won: pnl > 0,
       pnl: Number(pnl)
     } as BetResult);
@@ -243,15 +190,6 @@ single_deck_blackjack
     for (let i = 0; i < results.length; i++) {
       let result = results[i];
       let pnl = result.bet_size - result.bet_returned;
-
-      // Don't think Cumulative_PNL works properly
-      ctx.meter.Counter("Cumulative_PNL").add(Number(pnl), {
-        coin_type: coin_type,
-        game_type: game_type 
-      })
-
-      // Need to add Cumulative_Amount_Paid_Out
-
       ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
         game_type: game_type,
         // Note: We can modify this to add more if we want
@@ -273,7 +211,6 @@ single_deck_blackjack
     const coin_type = parse_token(event.type_arguments[0]);
     ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
       game_type: "plinko",
-      // Note: We can modify this to add more if we want
       game_data: {
         ball_count: event.data_decoded.ball_count,
         game_type: event.data_decoded.game_type
@@ -282,7 +219,7 @@ single_deck_blackjack
       bet_size: Number(event.data_decoded.bet_size),
       payout_amount: Number(event.data_decoded.pnl),
       player_won: event.data_decoded.pnl > event.data_decoded.bet_size,
-      pnl: Number(event.data_decoded.pnl - event.data_decoded.bet_size)
+      pnl: Number(event.data_decoded.pnl) - (Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count))
     });
   });
 
@@ -308,6 +245,15 @@ function token_decimal(token: string): number {
     default:
       return 9;
   }
+}
+
+export function extractGenericTypes(typeName: string): string[] {
+  const x = typeName.split("<");
+  if (x.length > 1) {
+    return x[1].replace(">", "").replace(" ", "").split(",");
+  } else {
+    return [];
+  };
 }
 
 function extractGameTypes(typeName: string): string {
