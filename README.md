@@ -1,4 +1,4 @@
-curl -L -X POST 'https://fullnode.testnet.sui.io/' -H 'Content-Type: application/json' --data-raw '{ "jsonrpc": "2.0", "id": 1, "method": "sui_getNormalizedMoveModulesByPackage", "params": [ "0x318d3ec30034e6c46bba43d69830f00115a51e04448bf284f21ff24cfda0317e" ] }'
+curl -L -X POST 'https://fullnode.mainnet.sui.io/' -H 'Content-Type: application/json' --data-raw '{ "jsonrpc": "2.0", "id": 1, "method": "sui_getNormalizedMoveModulesByPackage", "params": [ "0x97edb657c1fc47e02b1c6603fcdf82974b149f6b9bb8e3ade69c6ec94f3003f1" ] }'
 
 
 Packages that emit events:

@@ -47,7 +47,7 @@ const DICE_BET_TYPES = [
 ];
 
 events 
-  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(24239854) })
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventDeposit((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
     const amount = event.data_decoded.amount.scaleDown(
@@ -74,7 +74,7 @@ events
   });
 
 bls_settler
-  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventSettlementEvent((event, ctx) => {
     const coin_type =
       parse_token(event.type_arguments[0]) === "COIN"
@@ -132,7 +132,7 @@ bls_settler
   });
 
 roulette_events
-  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventGameSettlement((event, ctx) => {
     const game_type = "roulette";
     const coin_type =
@@ -188,7 +188,7 @@ roulette_events
   });
 
 single_deck_blackjack
-  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventGameOutcome((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
     // Boolean on amount comparator here
@@ -235,7 +235,7 @@ single_deck_blackjack
   });
 
   limbo
-  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventLimboResults((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
     const game_type = "limbo";
@@ -268,7 +268,7 @@ single_deck_blackjack
   });
 
   plinko
-  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(31600000)})
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventOutcome((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
     ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
@@ -276,9 +276,6 @@ single_deck_blackjack
       // Note: We can modify this to add more if we want
       game_data: {
         ball_count: event.data_decoded.ball_count,
-        ///    const LOW_GAME_TYPE: u8 = 0;
-        ///const MID_GAME_TYPE: u8 = 1;
-        ///const HIGH_GAME_TYPE: u8 = 2;
         game_type: event.data_decoded.game_type
       },
       player: event.data_decoded.player,
@@ -304,6 +301,10 @@ function token_decimal(token: string): number {
       return 9;
     case "USDC":
       return 6;
+    case "FUD":
+      return 5;
+    case "SUICUNE":
+      return 9;
     default:
       return 9;
   }
