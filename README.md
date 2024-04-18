@@ -3,13 +3,11 @@ curl -L -X POST 'https://fullnode.testnet.sui.io/' -H 'Content-Type: application
 
 Packages that emit events:
 
-Limbo: 0xee7163e913bf5615a0bf4b7619fd0d788b19d7c05af49fdeb62aee9048c58219
-Blackjack: 0xe6701ffde0010f023cb2d94594094f6c90ca825eacbffd80c85d87568bfdfd9f
-Plinko: 0xb3e99ec65ef8a3133238716685c64a405e3d6a404a05278b2ecfb0ca196ce377
-
-Dice / Flip / -> UNIHOUSE: 0x04f121234b74e68996b42a3c5ed91e57a6e8a48933f92af8dad265a715b53475
-
-Roulette: 0x318d3ec30034e6c46bba43d69830f00115a51e04448bf284f21ff24cfda0317e
+Limbo: 0xbca3313d753bba2e3b3d911d2306c5024de99dfdb2fc456850186b18867ac36c
+Blackjack: 0xbdec0470a0b3c4a1cd3d2ac3b7eb10af57db23e2dffcdf001f1f04f6eb79e065
+Plinko: 0x1513ee1a47bb1e3b78162f42510f3eece3c6ab0b246bdafda47f939cf7a81c07
+Dice / Flip / -> UNIHOUSE: 0xf0978635bb456d2cb2e594cd4a018c9aed486d6cb68c7890abe5ef56838034bf
+Roulette: 0x97edb657c1fc47e02b1c6603fcdf82974b149f6b9bb8e3ade69c6ec94f3003f1
 
 ScratchOff:
 

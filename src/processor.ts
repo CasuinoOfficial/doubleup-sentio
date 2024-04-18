@@ -47,7 +47,7 @@ const DICE_BET_TYPES = [
 ];
 
 events 
-  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(24239854) })
   .onEventDeposit((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
     const amount = event.data_decoded.amount.scaleDown(
@@ -268,7 +268,7 @@ single_deck_blackjack
   });
 
   plinko
-  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(24239854) })
+  .bind({ network: SuiNetwork.TEST_NET, startCheckpoint: BigInt(31600000)})
   .onEventOutcome((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
     ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
