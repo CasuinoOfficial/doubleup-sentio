@@ -216,7 +216,7 @@ single_deck_blackjack
         game_type: event.data_decoded.game_type
       },
       player: event.data_decoded.player,
-      bet_size: Number(event.data_decoded.bet_size),
+      bet_size: Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count),
       payout_amount: Number(event.data_decoded.pnl),
       player_won: event.data_decoded.pnl > event.data_decoded.bet_size,
       pnl: Number(event.data_decoded.pnl) - (Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count))
