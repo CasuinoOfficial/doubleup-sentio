@@ -219,7 +219,7 @@ single_deck_blackjack
       bet_size: Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count),
       payout_amount: Number(event.data_decoded.pnl),
       player_won: event.data_decoded.pnl > event.data_decoded.bet_size,
-      pnl: Number(event.data_decoded.pnl) - (Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count))
+      pnl: (Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count)) - Number(event.data_decoded.pnl)
     });
   });
 
