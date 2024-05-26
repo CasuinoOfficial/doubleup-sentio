@@ -1,6 +1,6 @@
 import { SuiNetwork } from "@sentio/sdk/sui";
 import { normalizeSuiAddress } from "@mysten/sui.js/utils";
-import { bls_settler, events  } from "./types/sui/unihouse.js";
+import { bls_settler, events, unihouse  } from "./types/sui/unihouse.js";
 import { single_deck_blackjack } from "./types/sui/blackjack.js";
 import { plinko } from "./types/sui/plinko.js";
 import { roulette_events } from "./types/sui/roulette.js";
@@ -71,6 +71,19 @@ events
     ctx.eventLogger.emit(`${coin_type}_Withdraw`, {
       amount: amount,
     });
+  })
+  .onEventEarnReferralRebate((event, ctx) => {
+    const genericType = extractGenericTypes(event.type);
+    const coin_type = parse_token(genericType[0]);
+    const game_type = genericType[1];
+    const referrer = event.data_decoded.referrer;
+    const amount = event.data_decoded.amount;
+    ctx.eventLogger.emit(`Referrals`, {
+      referrer: referrer,
+      amount: amount,
+      coinType: coin_type,
+      gameType: game_type
+    });
   });
 
 bls_settler
@@ -117,9 +130,7 @@ roulette_events
       let bet = bet_results[i];
       const bet_type = bet.bet_type;
       const bet_number = bet.bet_number;
-      const bet_size = bet.bet_size.scaleDown(
-        token_decimal(coin_type)
-      );
+      const bet_size = bet.bet_size
       const payout_amount = Number(bet_size) * ROULETTE_BET_TYPES[bet_type].odds
       const player = normalizeSuiAddress(bet.player);
       const player_win = bet.is_win;
