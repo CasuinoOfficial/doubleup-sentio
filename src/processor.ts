@@ -5,6 +5,7 @@ import { single_deck_blackjack } from "./types/sui/blackjack.js";
 import { plinko } from "./types/sui/plinko.js";
 import { roulette_events } from "./types/sui/roulette.js";
 import { limbo } from "./types/sui/limbo.js";
+import { curve } from "./types/sui/pumpup.js";
 
 type BetResult = {
   game_type: string;
@@ -231,6 +232,31 @@ single_deck_blackjack
       payout_amount: Number(event.data_decoded.pnl),
       player_won: event.data_decoded.pnl > event.data_decoded.bet_size,
       pnl: (Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count)) - Number(event.data_decoded.pnl)
+    });
+  });
+
+  curve
+  .bind({
+    network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)
+  }).onEventSwapEvent((event, ctx) => {
+    ctx.eventLogger.emit(`BondingCurveSwap`, {
+      bondingCurve: event.data_decoded.bc_id,
+      tokenType: event.data_decoded.token_type,
+      isBuy: event.data_decoded.is_buy,
+      inputAmount: event.data_decoded.input_amount,
+      outputAmount: event.data_decoded.output_amount,
+      sender: event.data_decoded.sender,
+    });
+  }).onEventBondingCurveListedEvent((event, ctx) => {
+    ctx.eventLogger.emit(`BondingCurveListed`, {
+      objectId: event.data_decoded.object_id,
+      tokenType: event.data_decoded.token_type,
+      creator: event.data_decoded.creator
+    });
+  }).onEventPoints((event, ctx) => {
+    ctx.eventLogger.emit(`BondingCurveFees`, {
+      amount: event.data_decoded.amount,
+      sender: event.data_decoded.sender,
     });
   });
 
