@@ -1,6 +1,7 @@
 import { SuiNetwork } from "@sentio/sdk/sui";
 import { normalizeSuiAddress } from "@mysten/sui.js/utils";
-import { bls_settler, events, unihouse  } from "./types/sui/unihouse.js";
+import { bls_settler, events  } from "./types/sui/unihouse.js";
+import { lottery  } from "./types/sui/lottery.js";
 import { single_deck_blackjack } from "./types/sui/blackjack.js";
 import { plinko } from "./types/sui/plinko.js";
 import { roulette_events } from "./types/sui/roulette.js";
@@ -259,6 +260,24 @@ single_deck_blackjack
       sender: event.data_decoded.sender,
     });
   });
+
+  lottery
+  .bind({
+    network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(36732180)
+  }).onEventTicketPurchased((event, ctx) => {
+    const coin_type = parse_token(event.type_arguments[0]);
+    ctx.eventLogger.emit(`${coin_type}_LotteryTicketPurchased`, {
+      picks: event.data_decoded.picks,
+      lottery_id: event.data_decoded.id,
+      sender: event.sender,
+    });
+  }).onEventRedeemEvent((event, ctx) => {
+    const coin_type = parse_token(event.type_arguments[0]);
+    ctx.eventLogger.emit(`${coin_type}_LotteryTicketRedeemed`, {
+      amount: event.data_decoded.amount,
+      sender: event.sender,
+    });
+  })
 
 function parse_token(name: string): string {
   let typeArgs = name.split("::");
