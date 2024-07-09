@@ -7,6 +7,7 @@ import { plinko } from "./types/sui/plinko.js";
 import { roulette_events } from "./types/sui/roulette.js";
 import { limbo } from "./types/sui/limbo.js";
 import { curve } from "./types/sui/pumpup.js";
+import { ticket } from "./types/sui/blastoff.js"
 
 type BetResult = {
   game_type: string;
@@ -47,6 +48,36 @@ const DICE_BET_TYPES = [
   { num: 8, type: "even", odds: 2 },
   { num: 9, type: "big", odds: 2 },
 ];
+
+ticket
+.bind({
+    network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(36732180)
+}).onEventMint((event, ctx) => {
+  const coin_type = parse_token(event.type_arguments[0]);
+  const buyer = event.data_decoded.buyer;
+  const cost = event.data_decoded.cost;
+  const id = event.data_decoded.id;
+  const referrer = event.data_decoded.referrer;
+  const sender = event.data_decoded.sender;
+
+  ctx.eventLogger.emit(`BlastOffMintTicket`, {
+    coinType: coin_type,
+    buyer,
+    cost,
+    id,
+    referrer,
+    sender
+  });
+
+}).onEventOpen((event, ctx) => {
+  const referrer = event.data_decoded.opener;
+  const sender = event.data_decoded.sender;
+  ctx.eventLogger.emit(`BlastOffOpenTicket`, {
+    opener,
+    sender
+  });
+});
+
 
 events 
   .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
@@ -277,7 +308,10 @@ single_deck_blackjack
       amount: event.data_decoded.amount,
       sender: event.sender,
     });
-  })
+  });
+
+  
+
 
 function parse_token(name: string): string {
   let typeArgs = name.split("::");
