@@ -73,7 +73,7 @@ ticket
   const referrer = event.data_decoded.opener;
   const sender = event.data_decoded.sender;
   ctx.eventLogger.emit(`BlastOffOpenTicket`, {
-    opener,
+    referrer,
     sender
   });
 });
