@@ -8,6 +8,7 @@ import { roulette_events } from "./types/sui/roulette.js";
 import { limbo } from "./types/sui/limbo.js";
 import { curve } from "./types/sui/pumpup.js";
 import { ticket } from "./types/sui/blastoff.js"
+import { single_roulette } from "./types/sui/single_roulette.js";
 
 type BetResult = {
   game_type: string;
@@ -78,6 +79,41 @@ ticket
   });
 });
 
+single_roulette.bind({
+  network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)
+}).onEventBetSettledEvent((event, ctx) => {
+  const game_type = "single_roulette";
+  const genericType = extractGenericTypes(event.type);
+  const coin_type = parse_token(genericType[0]);
+  let bet_results = event.data_decoded.bet_results;
+  const table_id = event.data_decoded.table_id;
+  const creator = event.data_decoded.creator;
+  for (let i = 0; i < bet_results.length; i++) {
+    let bet = bet_results[i];
+    const bet_type = bet.bet_type;
+    const bet_number = bet.bet_number;
+    const bet_size = bet.bet_size
+    const payout_amount = Number(bet_size) * ROULETTE_BET_TYPES[bet_type].odds
+    const player = normalizeSuiAddress(bet.player);
+    const player_win = bet.is_win;
+    const pnl = player_win
+        ? 0 - Number(payout_amount)
+        : Number(bet_size);
+    
+    
+    ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
+      game_type: game_type,
+      player: player,
+      bet_type: ROULETTE_BET_TYPES[bet_type].name,
+      bet_number: `${bet_number}`,
+      bet_size: bet.bet_size,
+      player_win: player_win,
+      pnl: pnl,
+      table_id,
+      creator
+    });
+  }
+})
 
 events 
   .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})

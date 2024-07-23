@@ -1,4 +1,4 @@
-curl -L -X POST 'https://fullnode.mainnet.sui.io/' -H 'Content-Type: application/json' --data-raw '{ "jsonrpc": "2.0", "id": 1, "method": "sui_getNormalizedMoveModulesByPackage", "params": [ "0x80fe74322a141e1a4de653c7ed7f8341c457fb91c7415347ba5475cda8c40faf" ] }'
+curl -L -X POST 'https://fullnode.mainnet.sui.io/' -H 'Content-Type: application/json' --data-raw '{ "jsonrpc": "2.0", "id": 1, "method": "sui_getNormalizedMoveModulesByPackage", "params": [ "0x6eb0205627621a882b9e478b3103a961d5e249e10fef550dc8a9032ce86c0a61" ] }'
 
 npx sentio gen
 
