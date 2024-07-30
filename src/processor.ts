@@ -9,6 +9,8 @@ import { limbo } from "./types/sui/limbo.js";
 import { curve } from "./types/sui/pumpup.js";
 import { ticket } from "./types/sui/blastoff.js"
 import { single_roulette } from "./types/sui/single_roulette.js";
+import { plinko  as dsl_plinko} from "./types/sui/dsl_plinko.js";
+import { limbo as dsl_limbo } from "./types/sui/dsl_limbo.js";
 
 type BetResult = {
   game_type: string;
@@ -285,7 +287,49 @@ single_deck_blackjack
     }
   });
 
+  dsl_limbo
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
+  .onEventLimboResults((event, ctx) => {
+    const coin_type = parse_token(event.type_arguments[0]);
+    const game_type = "limbo";
+    let results = event.data_decoded.results;
+    for (let i = 0; i < results.length; i++) {
+      let result = results[i];
+      let pnl = result.bet_size - result.bet_returned;
+      ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
+        game_type: game_type,
+        // Note: We can modify this to add more if we want
+        game_data: {
+          outcome: result.outcome,
+        },
+        player: event.data_decoded.player,
+        bet_size: Number(result.bet_size),
+        payout_amount: Number(result.bet_returned),
+        player_won: pnl > 0,
+        pnl: Number(pnl)
+      });
+    }
+  });
+
   plinko
+  .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
+  .onEventOutcome((event, ctx) => {
+    const coin_type = parse_token(event.type_arguments[0]);
+    ctx.eventLogger.emit(`${coin_type}_Bet_Result`, {
+      game_type: "plinko",
+      game_data: {
+        ball_count: event.data_decoded.ball_count,
+        game_type: event.data_decoded.game_type
+      },
+      player: event.data_decoded.player,
+      bet_size: Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count),
+      payout_amount: Number(event.data_decoded.pnl),
+      player_won: event.data_decoded.pnl > event.data_decoded.bet_size,
+      pnl: (Number(event.data_decoded.bet_size) * Number(event.data_decoded.ball_count)) - Number(event.data_decoded.pnl)
+    });
+  });
+
+  dsl_plinko
   .bind({ network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)})
   .onEventOutcome((event, ctx) => {
     const coin_type = parse_token(event.type_arguments[0]);
