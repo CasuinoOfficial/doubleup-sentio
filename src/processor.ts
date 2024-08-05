@@ -397,7 +397,7 @@ single_deck_blackjack
     const coin_type = parse_token(event.type_arguments[0]);
     ctx.eventLogger.emit(`${coin_type}_SlotsDeposit`, {
       amount: event.data_decoded.amount,
-      address: event.data_decoded.player_address,
+      player_address: event.data_decoded.player_address,
     });
   })
 
