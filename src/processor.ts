@@ -90,6 +90,7 @@ single_roulette.bind({
   let bet_results = event.data_decoded.bet_results;
   const table_id = event.data_decoded.table_id;
   const creator = event.data_decoded.creator;
+  const origin = event.data_decoded.origin;
   for (let i = 0; i < bet_results.length; i++) {
     let bet = bet_results[i];
     const bet_type = bet.bet_type;
@@ -112,7 +113,8 @@ single_roulette.bind({
       player_win: player_win,
       pnl: pnl,
       table_id,
-      creator
+      creator,
+      origin,
     });
   }
 })
