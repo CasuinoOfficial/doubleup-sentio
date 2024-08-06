@@ -11,6 +11,7 @@ import { ticket } from "./types/sui/blastoff.js"
 import { single_roulette } from "./types/sui/single_roulette.js";
 import { plinko  as dsl_plinko} from "./types/sui/dsl_plinko.js";
 import { limbo as dsl_limbo } from "./types/sui/dsl_limbo.js";
+import { wallet as slots } from "./types/sui/slots.js";
 
 type BetResult = {
   game_type: string;
@@ -390,8 +391,15 @@ single_deck_blackjack
     });
   });
 
-  
-
+  slots.bind({
+    network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(31000000)
+  }).onEventDepositEvent((event, ctx) => {
+    const coin_type = parse_token(event.type_arguments[0]);
+    ctx.eventLogger.emit(`${coin_type}_SlotsDeposit`, {
+      amount: event.data_decoded.amount,
+      player_address: event.data_decoded.player_address,
+    });
+  })
 
 function parse_token(name: string): string {
   let typeArgs = name.split("::");
