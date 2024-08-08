@@ -4,6 +4,10 @@ npx sentio gen
 
 # To upload
 npx sentio upload
+```
+npx sentio upload --continue-from 41 (this command continues from last know commit and will index only future events without reindexeing the entire history)
+
+```
 
 Packages that emit events:
 
