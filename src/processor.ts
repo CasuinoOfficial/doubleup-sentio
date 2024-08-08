@@ -12,6 +12,7 @@ import { single_roulette } from "./types/sui/single_roulette.js";
 import { plinko  as dsl_plinko} from "./types/sui/dsl_plinko.js";
 import { limbo as dsl_limbo } from "./types/sui/dsl_limbo.js";
 import { wallet as slots } from "./types/sui/slots.js";
+import { raffle } from "./types/sui/raffle.js";
 
 type BetResult = {
   game_type: string;
@@ -401,6 +402,20 @@ single_deck_blackjack
       amount: event.data_decoded.amount,
       player_address: event.data_decoded.player_address,
     });
+  })
+
+  raffle.bind({
+    network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(45000000)
+  }).onEventTicketsBought((event, ctx) => {
+    const coin_type = parse_token(event.data_decoded.coin_type);
+    ctx.eventLogger.emit(`${coin_type}_Raffle`, {
+        raffle_id: event.data_decoded.raffle_id,
+        player: event.data_decoded.user,
+        quantity: event.data_decoded.quantity,
+        paid: event.data_decoded.paid,
+        deal: event.data_decoded.deal,
+        first_number: event.data_decoded.first_number
+    })
   })
 
 function parse_token(name: string): string {
