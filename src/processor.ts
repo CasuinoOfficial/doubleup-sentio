@@ -13,6 +13,7 @@ import { plinko  as dsl_plinko} from "./types/sui/dsl_plinko.js";
 import { limbo as dsl_limbo } from "./types/sui/dsl_limbo.js";
 import { wallet as slots } from "./types/sui/slots.js";
 import { raffle } from "./types/sui/raffle.js";
+import { smart_wallet_events } from "./types/sui/smart_wallet_events.js";
 
 type BetResult = {
   game_type: string;
@@ -415,6 +416,19 @@ single_deck_blackjack
         paid: event.data_decoded.paid,
         deal: event.data_decoded.deal,
         first_number: event.data_decoded.first_number
+    })
+  })
+
+  smart_wallet_events.bind({
+    network: SuiNetwork.MAIN_NET, startCheckpoint: BigInt(45000000)
+  }).onEventBetEvent((event, ctx) => {
+    const coin_type = parse_token(event.type_arguments[0]);
+    ctx.eventLogger.emit(`${coin_type}_MGASIA_Bet`, {
+        player_address: event.data_decoded.player_address,
+        bet_size: event.data_decoded.bet_size,
+        payout_amount: event.data_decoded.payout_amount,
+        timestamp: event.data_decoded.timestamp,
+        pnl: event.data_decoded.bet_size - event.data_decoded.payout_amount
     })
   })
 
